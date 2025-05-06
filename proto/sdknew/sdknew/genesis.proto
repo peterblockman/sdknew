@@ -1,0 +1,17 @@
+syntax = "proto3";
+package sdknew.sdknew;
+
+import "amino/amino.proto";
+import "gogoproto/gogo.proto";
+import "sdknew/sdknew/params.proto";
+
+option go_package = "sdknew/x/sdknew/types";
+
+// GenesisState defines the sdknew module's genesis state.
+message GenesisState {
+  // params defines all the parameters of the module.
+  Params params = 1 [
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+}
