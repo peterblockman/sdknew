@@ -272,33 +272,33 @@ func New(
 	// build app
 	app.App = appBuilder.Build(db, traceStore, baseAppOptions...)
 
-	// Wasm
+	// register legacy modules
+	if err := app.registerIBCModules(appOpts); err != nil {
+		return nil, err
+	}
+
+	// Ensure CapabilityKeeper is initialized before using it
+	if app.CapabilityKeeper == nil {
+		return nil, fmt.Errorf("capability keeper is nil, check your app wiring")
+	}
+
+	// Wasm - move this after IBC modules are registered to ensure CapabilityKeeper is initialized
 	// Create a scoped keeper for wasm
 	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
 	app.ScopedWasmKeeper = scopedWasmKeeper
 
 	// Read wasm configuration
-	fmt.Printf("DEBUG: Reading wasm config with appOpts: %+v\n", appOpts)
 	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
 	if err != nil {
-		fmt.Printf("DEBUG: Error reading wasm config: %v\n", err)
 		return nil, fmt.Errorf("error reading wasm config: %w", err)
 	}
-	fmt.Printf("DEBUG: Wasm config loaded: %+v\n", wasmConfig)
 
 	// Use store adapter from runtime
-	fmt.Printf("DEBUG: Creating KVStoreService from key: %+v\n", app.GetKey(wasmtypes.StoreKey))
 	storeService := runtime.NewKVStoreService(app.GetKey(wasmtypes.StoreKey))
-	fmt.Printf("DEBUG: Store service created: %+v\n", storeService)
 
 	wasmOpts := []wasmkeeper.Option{
 		wasmkeeper.WithGasRegister(wasmtypes.NewDefaultWasmGasRegister()),
 	}
-	fmt.Printf("DEBUG: WasmOpts created with default gas register\n")
-
-	// This may require implementing the appropriate interfaces or adapters
-	// between your app keepers and the wasmd required interfaces
-	fmt.Printf("DEBUG: Starting creation of WasmKeeper\n")
 
 	// Create wasm distribution keeper adapter
 	wasmDistributionKeeper := NewWasmDistributionKeeper(app.DistrKeeper, *app.StakingKeeper)
@@ -323,11 +323,6 @@ func New(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(), // authority
 		wasmOpts...,
 	)
-
-	// register legacy modules
-	if err := app.registerIBCModules(appOpts); err != nil {
-		return nil, err
-	}
 
 	// register streaming services
 	if err := app.RegisterStreamingServices(appOpts, app.kvStoreKeys()); err != nil {
