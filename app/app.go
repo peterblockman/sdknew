@@ -77,12 +77,9 @@ import (
 	ibcfeekeeper "github.com/cosmos/ibc-go/v8/modules/apps/29-fee/keeper"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
-	"github.com/spf13/cast"
 
-	//wasm
-	"github.com/CosmWasm/wasmd/x/wasm"
+	// Only needed for type declarations
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
@@ -208,6 +205,7 @@ func AppConfig() depinject.Config {
 func New(
 	logger log.Logger,
 	db dbm.DB,
+	// apture trace information from the application. An io.Writer to collects debugging or performance information during execution
 	traceStore io.Writer,
 	loadLatest bool,
 	appOpts servertypes.AppOptions,
@@ -285,75 +283,8 @@ func New(
 		return nil, fmt.Errorf("capability keeper is nil, check your app wiring")
 	}
 
-	// Wasm
-	// Register wasm interfaces with the InterfaceRegistry
-	wasmtypes.RegisterInterfaces(app.interfaceRegistry)
-
-	// move this after IBC modules are registered to ensure CapabilityKeeper is initialized
-	// Create a scoped keeper for wasm
-	// scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
-	// app.ScopedWasmKeeper = scopedWasmKeeper
-
-	// Configure the wasm subspace
-	app.ParamsKeeper.Subspace(wasmtypes.ModuleName)
-
-	// Read wasm configuration
-	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
-	if err != nil {
-		return nil, fmt.Errorf("error reading wasm config: %w", err)
-	}
-
-	// Check for custom wasm file size limits from app options
-	if maxSize := cast.ToInt(appOpts.Get("wasm.max_wasm_size")); maxSize > 0 {
-		wasmtypes.MaxWasmSize = maxSize
-	}
-
-	if maxProposalSize := cast.ToInt(appOpts.Get("wasm.max_proposal_wasm_size")); maxProposalSize > 0 {
-		wasmtypes.MaxProposalWasmSize = maxProposalSize
-	}
-
-	// Use store adapter from runtime
-	storeService := runtime.NewKVStoreService(app.GetKey(wasmtypes.StoreKey))
-
-	wasmOpts := []wasmkeeper.Option{
-		wasmkeeper.WithGasRegister(wasmtypes.NewDefaultWasmGasRegister()),
-	}
-
-	// Create wasm distribution keeper adapter
-	wasmDistributionKeeper := NewWasmDistributionKeeper(app.DistrKeeper, *app.StakingKeeper)
-
-	app.WasmKeeper = wasmkeeper.NewKeeper(
-		app.appCodec,
-		storeService,
-		app.AccountKeeper,
-		app.BankKeeper,
-		app.StakingKeeper,
-		wasmDistributionKeeper,
-		app.IBCKeeper.ChannelKeeper,
-		app.IBCKeeper.ChannelKeeper,
-		app.IBCKeeper.PortKeeper,
-		app.ScopedWasmKeeper,
-		app.TransferKeeper,
-		app.MsgServiceRouter(),
-		app.GRPCQueryRouter(),
-		"", // tempDir - leave empty for production
-		wasmConfig,
-		"iterator,staking,stargate", // availableCapabilities - enable commonly required capabilities
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(), // authority
-		wasmOpts...,
-	)
-
-	// Register the wasm module with modules list
-	wasmModule := wasm.NewAppModule(
-		app.appCodec,
-		&app.WasmKeeper,
-		app.StakingKeeper,
-		app.AccountKeeper,
-		app.BankKeeper,
-		app.MsgServiceRouter(),
-		app.GetSubspace(wasmtypes.ModuleName),
-	)
-	if err := app.RegisterModules(wasmModule); err != nil {
+	// Register wasm module after IBC is initialized
+	if err := app.registerWasmModule(appOpts); err != nil {
 		return nil, err
 	}
 
