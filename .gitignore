@@ -9,7 +9,25 @@ release/
 *.ign
 *.key
 *.wasm
-wasmfiles
-wasm
+wasmfiles/
+wasm/
 *.txt
 build/
+bin/
+# Binary files
+/sdknewd
+sdknew
+# Golang specific ignores
+vendor/
+*.o
+*.a
+*.so
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.dylib
+# Test binary, built with `go test -c`
+*.test
+# Output of the go coverage tool
+*.out
