@@ -9,6 +9,7 @@ import (
 
 	"sdknew/app"
 	"sdknew/cmd/sdknewd/cmd"
+	_ "sdknew/x/wasm/types" // Import for side effects to customize WASM limits
 )
 
 func main() {

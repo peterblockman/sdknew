@@ -3,6 +3,7 @@ package app
 import (
 	"cosmossdk.io/core/appmodule"
 	storetypes "cosmossdk.io/store/types"
+	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -199,7 +200,11 @@ func RegisterIBC(registry cdctypes.InterfaceRegistry) map[string]appmodule.AppMo
 		capabilitytypes.ModuleName:  capability.AppModule{},
 		ibctm.ModuleName:            ibctm.AppModule{},
 		solomachine.ModuleName:      solomachine.AppModule{},
+		wasmtypes.ModuleName:        wasm.AppModule{},
 	}
+
+	// Register wasm types explicitly to help with tx decoding
+	wasmtypes.RegisterInterfaces(registry)
 
 	for name, m := range modules {
 		module.CoreAppModuleBasicAdaptor(name, m).RegisterInterfaces(registry)

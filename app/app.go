@@ -77,6 +77,7 @@ import (
 	ibcfeekeeper "github.com/cosmos/ibc-go/v8/modules/apps/29-fee/keeper"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+	"github.com/spf13/cast"
 
 	//wasm
 	"github.com/CosmWasm/wasmd/x/wasm"
@@ -282,15 +283,30 @@ func New(
 		return nil, fmt.Errorf("capability keeper is nil, check your app wiring")
 	}
 
+	// Register wasm interfaces with the InterfaceRegistry
+	wasmtypes.RegisterInterfaces(app.interfaceRegistry)
+
 	// Wasm - move this after IBC modules are registered to ensure CapabilityKeeper is initialized
 	// Create a scoped keeper for wasm
 	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
 	app.ScopedWasmKeeper = scopedWasmKeeper
 
+	// Configure the wasm subspace
+	app.ParamsKeeper.Subspace(wasmtypes.ModuleName)
+
 	// Read wasm configuration
 	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
 	if err != nil {
 		return nil, fmt.Errorf("error reading wasm config: %w", err)
+	}
+
+	// Check for custom wasm file size limits from app options
+	if maxSize := cast.ToInt(appOpts.Get("wasm.max_wasm_size")); maxSize > 0 {
+		wasmtypes.MaxWasmSize = maxSize
+	}
+
+	if maxProposalSize := cast.ToInt(appOpts.Get("wasm.max_proposal_wasm_size")); maxProposalSize > 0 {
+		wasmtypes.MaxProposalWasmSize = maxProposalSize
 	}
 
 	// Use store adapter from runtime
@@ -319,10 +335,24 @@ func New(
 		app.GRPCQueryRouter(),
 		"", // tempDir - leave empty for production
 		wasmConfig,
-		"", // availableCapabilities
+		"iterator,staking,stargate", // availableCapabilities - enable commonly required capabilities
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(), // authority
 		wasmOpts...,
 	)
+
+	// Register the wasm module with modules list
+	wasmModule := wasm.NewAppModule(
+		app.appCodec,
+		&app.WasmKeeper,
+		app.StakingKeeper,
+		app.AccountKeeper,
+		app.BankKeeper,
+		app.MsgServiceRouter(),
+		app.GetSubspace(wasmtypes.ModuleName),
+	)
+	if err := app.RegisterModules(wasmModule); err != nil {
+		return nil, err
+	}
 
 	// register streaming services
 	if err := app.RegisterStreamingServices(appOpts, app.kvStoreKeys()); err != nil {

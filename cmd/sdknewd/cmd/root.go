@@ -20,6 +20,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/CosmWasm/wasmd/x/wasm"
+	wasmcli "github.com/CosmWasm/wasmd/x/wasm/client/cli"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+
 	"sdknew/app"
 )
 
@@ -87,7 +91,16 @@ func NewRootCmd() *cobra.Command {
 		autoCliOpts.Modules[name] = mod
 	}
 
+	// Register wasm module CLI commands
+	moduleBasicManager[wasmtypes.ModuleName] = wasm.AppModuleBasic{}
+
 	initRootCmd(rootCmd, clientCtx.TxConfig, moduleBasicManager)
+
+	// Add wasm commands
+	rootCmd.AddCommand(
+		wasmcli.GetQueryCmd(),
+		wasmcli.GetTxCmd(),
+	)
 
 	overwriteFlagDefaults(rootCmd, map[string]string{
 		flags.FlagChainID:        strings.ReplaceAll(app.Name, "-", ""),

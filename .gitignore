@@ -7,3 +7,9 @@ release/
 *.dot
 *.log
 *.ign
+*.key
+*.wasm
+wasmfiles
+wasm
+*.txt
+build/

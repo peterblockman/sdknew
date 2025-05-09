@@ -16,7 +16,7 @@ faucet:
   name: bob
   coins:
   - 5token
-  - 100000stake
+  - 1000000000stake
 validators:
 - name: alice
   bonded: 100000000stake
@@ -25,4 +25,5 @@ validators:
 - name: validator2
   bonded: 200000000stake
 - name: validator3
-  bonded: 300000000stake
+  bonded: 300000000stake56789
+  
