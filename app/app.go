@@ -151,10 +151,12 @@ type App struct {
 	ScopedIBCTransferKeeper   capabilitykeeper.ScopedKeeper
 	ScopedICAControllerKeeper capabilitykeeper.ScopedKeeper
 	ScopedICAHostKeeper       capabilitykeeper.ScopedKeeper
-	ScopedKeepers             map[string]capabilitykeeper.ScopedKeeper
 	// wasm
-	WasmKeeper       wasmkeeper.Keeper
+	WasmKeeper wasmkeeper.Keeper
+	// Scoped Wasm
 	ScopedWasmKeeper capabilitykeeper.ScopedKeeper
+	// stores and provides access to scoped capability keepers for different modules
+	ScopedKeepers map[string]capabilitykeeper.ScopedKeeper
 
 	SdknewKeeper sdknewmodulekeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
@@ -283,13 +285,14 @@ func New(
 		return nil, fmt.Errorf("capability keeper is nil, check your app wiring")
 	}
 
+	// Wasm
 	// Register wasm interfaces with the InterfaceRegistry
 	wasmtypes.RegisterInterfaces(app.interfaceRegistry)
 
-	// Wasm - move this after IBC modules are registered to ensure CapabilityKeeper is initialized
+	// move this after IBC modules are registered to ensure CapabilityKeeper is initialized
 	// Create a scoped keeper for wasm
-	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
-	app.ScopedWasmKeeper = scopedWasmKeeper
+	// scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
+	// app.ScopedWasmKeeper = scopedWasmKeeper
 
 	// Configure the wasm subspace
 	app.ParamsKeeper.Subspace(wasmtypes.ModuleName)

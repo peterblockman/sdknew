@@ -61,12 +61,12 @@ import (
 )
 
 var (
-	// NOTE: The genutils module must occur after staking so that pools are
-	// properly initialized with tokens from genesis accounts.
-	// NOTE: The genutils module must also occur after auth so that it can access the params from auth.
-	// NOTE: Capability module must occur first so that it can initialize any capabilities
-	// so that other modules that want to create or claim capabilities afterwards in InitChain
-	// can do so safely.
+	// genesisModuleOrder defines the order in which modules are initialized during genesis.
+	// This order is important because some modules depend on others being initialized first.
+	// For example:
+	// - genutils must occur after staking so token pools are properly initialized
+	// - genutils must occur after auth to access auth parameters
+	// - capability module must be first to safely initialize capabilities for other modules
 	genesisModuleOrder = []string{
 		// cosmos-sdk/ibc modules
 		capabilitytypes.ModuleName,
@@ -99,11 +99,12 @@ var (
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	}
 
-	// During begin block slashing happens after distr.BeginBlocker so that
-	// there is nothing left over in the validator fee pool, so as to keep the
-	// CanWithdrawInvariant invariant.
-	// NOTE: staking module is required if HistoricalEntries param > 0
-	// NOTE: capability module's beginblocker must come before any modules using capabilities (e.g. IBC)
+	// beginBlockers defines the order of modules that perform processing at the beginning of each block.
+	// The order is important as some modules may depend on updates from other modules.
+	// For example:
+	// - capability module's beginBlocker must run before any modules using capabilities (like IBC)
+	// - distribution occurs before slashing to ensure nothing is left in validator fee pool
+	// - staking is required if HistoricalEntries param > 0
 	beginBlockers = []string{
 		// cosmos sdk modules
 		minttypes.ModuleName,
@@ -125,6 +126,8 @@ var (
 		// this line is used by starport scaffolding # stargate/app/beginBlockers
 	}
 
+	// endBlockers defines the order of modules that perform processing at the end of each block.
+	// Critical modules like governance and staking perform state transitions here.
 	endBlockers = []string{
 		// cosmos sdk modules
 		crisistypes.ModuleName,
@@ -146,13 +149,20 @@ var (
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	}
 
+	// preBlockers defines modules that execute logic before the block processing starts,
+	// typically for handling upgrades or other critical pre-block operations.
 	preBlockers = []string{
 		upgradetypes.ModuleName,
 		authtypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/preBlockers
 	}
 
-	// module account permissions
+	// moduleAccPerms defines permissions for module accounts in the application.
+	// Each module account can have specific permissions like minting or burning tokens.
+	// For example:
+	// - mint module can mint new tokens
+	// - staking module accounts can burn tokens
+	// - gov module can burn tokens for proposals
 	moduleAccPerms = []*authmodulev1.ModuleAccountPermission{
 		{Account: authtypes.FeeCollectorName},
 		{Account: distrtypes.ModuleName},
@@ -168,7 +178,9 @@ var (
 		// this line is used by starport scaffolding # stargate/app/maccPerms
 	}
 
-	// blocked account addresses
+	// blockAccAddrs defines module accounts that are not allowed to receive external funds.
+	// This prevents users from accidentally sending tokens to system-controlled addresses.
+	// Note: Some module accounts like gov are intentionally allowed to receive funds for proposals.
 	blockAccAddrs = []string{
 		authtypes.FeeCollectorName,
 		distrtypes.ModuleName,
