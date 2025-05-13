@@ -13,6 +13,8 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+
+	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 )
 
 // registerWasmModule registers the wasm module and its dependencies
@@ -52,24 +54,21 @@ func (app *App) registerWasmModule(appOpts servertypes.AppOptions) error {
 		wasmkeeper.WithGasRegister(wasmtypes.NewDefaultWasmGasRegister()),
 	}
 
-	// Create wasm distribution keeper adapter
-	wasmDistributionKeeper := NewWasmDistributionKeeper(app.DistrKeeper, *app.StakingKeeper)
-
 	app.WasmKeeper = wasmkeeper.NewKeeper(
 		app.appCodec,
 		storeService,
-		app.AccountKeeper,           // must implement wasmtypes.AccountKeeper
-		app.BankKeeper,              // must implement wasmtypes.BankKeeper
-		app.StakingKeeper,           // must implement wasmtypes.StakingKeeper
-		wasmDistributionKeeper,      // must implement wasmtypes.DistributionKeeper
-		app.IBCKeeper.ChannelKeeper, // ICS4Wrapper
-		app.IBCKeeper.ChannelKeeper, // ChannelKeeper
-		app.TransferKeeper,          // ICS20TransferPortSource
-		app.MsgServiceRouter(),      // MessageRouter
-		app.GRPCQueryRouter(),       // GRPCQueryRouter
-		"",                          // homeDir (warmDir)
-		wasmConfig,                  // NodeConfig
-		wasmtypes.VMConfig{},        // VMConfig
+		app.AccountKeeper,                       // must implement wasmtypes.AccountKeeper
+		app.BankKeeper,                          // must implement wasmtypes.BankKeeper
+		app.StakingKeeper,                       // must implement wasmtypes.StakingKeeper
+		distrkeeper.NewQuerier(app.DistrKeeper), // must implement wasmtypes.DistributionKeeper
+		app.IBCKeeper.ChannelKeeper,             // ICS4Wrapper
+		app.IBCKeeper.ChannelKeeper,             // ChannelKeeper
+		app.TransferKeeper,                      // ICS20TransferPortSource
+		app.MsgServiceRouter(),                  // MessageRouter
+		app.GRPCQueryRouter(),                   // GRPCQueryRouter
+		"",                                      // homeDir (warmDir)
+		wasmConfig,                              // NodeConfig
+		wasmtypes.VMConfig{},                    // VMConfig
 		[]string{"iterator", "staking", "stargate"},              // availableCapabilities
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(), // authority
 		wasmOpts..., // ...Option
