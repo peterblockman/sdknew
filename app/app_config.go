@@ -47,11 +47,10 @@ import (
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
-	icatypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/types"
-	ibcfeetypes "github.com/cosmos/ibc-go/v8/modules/apps/29-fee/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
-	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+
+	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
+	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	sdknewmodulev1 "sdknew/api/sdknew/sdknew/module"
@@ -66,10 +65,8 @@ var (
 	// For example:
 	// - genutils must occur after staking so token pools are properly initialized
 	// - genutils must occur after auth to access auth parameters
-	// - capability module must be first to safely initialize capabilities for other modules
 	genesisModuleOrder = []string{
 		// cosmos-sdk/ibc modules
-		capabilitytypes.ModuleName,
 		authtypes.ModuleName,
 		banktypes.ModuleName,
 		distrtypes.ModuleName,
@@ -84,7 +81,6 @@ var (
 		authz.ModuleName,
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
-		ibcfeetypes.ModuleName,
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
@@ -102,7 +98,6 @@ var (
 	// beginBlockers defines the order of modules that perform processing at the beginning of each block.
 	// The order is important as some modules may depend on updates from other modules.
 	// For example:
-	// - capability module's beginBlocker must run before any modules using capabilities (like IBC)
 	// - distribution occurs before slashing to ensure nothing is left in validator fee pool
 	// - staking is required if HistoricalEntries param > 0
 	beginBlockers = []string{
@@ -115,11 +110,9 @@ var (
 		authz.ModuleName,
 		genutiltypes.ModuleName,
 		// ibc modules
-		capabilitytypes.ModuleName,
 		ibcexported.ModuleName,
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
-		ibcfeetypes.ModuleName,
 		wasmtypes.ModuleName,
 		// chain modules
 		sdknewmoduletypes.ModuleName,
@@ -139,9 +132,7 @@ var (
 		// ibc modules
 		ibcexported.ModuleName,
 		ibctransfertypes.ModuleName,
-		capabilitytypes.ModuleName,
 		icatypes.ModuleName,
-		ibcfeetypes.ModuleName,
 		wasmtypes.ModuleName,
 
 		// chain modules
@@ -172,7 +163,6 @@ var (
 		{Account: govtypes.ModuleName, Permissions: []string{authtypes.Burner}},
 		{Account: nft.ModuleName},
 		{Account: ibctransfertypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}},
-		{Account: ibcfeetypes.ModuleName},
 		{Account: icatypes.ModuleName},
 		{Account: wasmtypes.ModuleName, Permissions: []string{authtypes.Burner, authtypes.Minter}},
 		// this line is used by starport scaffolding # stargate/app/maccPerms
@@ -316,6 +306,7 @@ var (
 				Name:   sdknewmoduletypes.ModuleName,
 				Config: appconfig.WrapAny(&sdknewmodulev1.Module{}),
 			},
+			
 			// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},
 	})

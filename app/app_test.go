@@ -51,9 +51,6 @@ func TestWasmModuleInitialization(t *testing.T) {
 	modules := testApp.ModuleManager.Modules
 	_, exists := modules[wasmtypes.ModuleName]
 	require.True(t, exists, "Wasm module should be registered in ModuleManager")
-
-	// Check the ScopedWasmKeeper
-	require.NotNil(t, testApp.ScopedWasmKeeper, "ScopedWasmKeeper should be initialized")
 }
 
 func TestWasmStoreIsRegistered(t *testing.T) {

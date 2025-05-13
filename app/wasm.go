@@ -31,7 +31,7 @@ func (app *App) registerWasmModule(appOpts servertypes.AppOptions) error {
 	app.ParamsKeeper.Subspace(wasmtypes.ModuleName)
 
 	// Read wasm configuration
-	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
+	wasmConfig, err := wasm.ReadNodeConfig(appOpts)
 	if err != nil {
 		return fmt.Errorf("error reading wasm config: %w", err)
 	}
@@ -44,10 +44,6 @@ func (app *App) registerWasmModule(appOpts servertypes.AppOptions) error {
 	if maxProposalSize := cast.ToInt(appOpts.Get("wasm.max_proposal_wasm_size")); maxProposalSize > 0 {
 		wasmtypes.MaxProposalWasmSize = maxProposalSize
 	}
-
-	// Create a scoped keeper for wasm
-	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
-	app.ScopedWasmKeeper = scopedWasmKeeper
 
 	// Use store adapter from runtime
 	storeService := runtime.NewKVStoreService(app.GetKey(wasmtypes.StoreKey))
@@ -62,22 +58,21 @@ func (app *App) registerWasmModule(appOpts servertypes.AppOptions) error {
 	app.WasmKeeper = wasmkeeper.NewKeeper(
 		app.appCodec,
 		storeService,
-		app.AccountKeeper,
-		app.BankKeeper,
-		app.StakingKeeper,
-		wasmDistributionKeeper,
-		app.IBCKeeper.ChannelKeeper,
-		app.IBCKeeper.ChannelKeeper,
-		app.IBCKeeper.PortKeeper,
-		app.ScopedWasmKeeper,
-		app.TransferKeeper,
-		app.MsgServiceRouter(),
-		app.GRPCQueryRouter(),
-		"", // tempDir - leave empty for production
-		wasmConfig,
-		"iterator,staking,stargate", // availableCapabilities - enable commonly required capabilities
+		app.AccountKeeper,           // must implement wasmtypes.AccountKeeper
+		app.BankKeeper,              // must implement wasmtypes.BankKeeper
+		app.StakingKeeper,           // must implement wasmtypes.StakingKeeper
+		wasmDistributionKeeper,      // must implement wasmtypes.DistributionKeeper
+		app.IBCKeeper.ChannelKeeper, // ICS4Wrapper
+		app.IBCKeeper.ChannelKeeper, // ChannelKeeper
+		app.TransferKeeper,          // ICS20TransferPortSource
+		app.MsgServiceRouter(),      // MessageRouter
+		app.GRPCQueryRouter(),       // GRPCQueryRouter
+		"",                          // homeDir (warmDir)
+		wasmConfig,                  // NodeConfig
+		wasmtypes.VMConfig{},        // VMConfig
+		[]string{"iterator", "staking", "stargate"},              // availableCapabilities
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(), // authority
-		wasmOpts...,
+		wasmOpts..., // ...Option
 	)
 
 	// Register the wasm module with modules list
