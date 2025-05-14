@@ -86,7 +86,7 @@ const (
 	// Name is the name of the application.
 	Name = "sdknew"
 	// AccountAddressPrefix is the prefix for accounts addresses.
-	AccountAddressPrefix = "cosmos"
+	AccountAddressPrefix = "shareledger"
 	// ChainCoinType is the coin type of the chain.
 	ChainCoinType = 118
 )

@@ -11,7 +11,9 @@ release/
 *.wasm
 wasmfiles/
 wasm/
+# output files
 *.txt
+output.json
 build/
 bin/
 # Binary files
@@ -31,3 +33,5 @@ vendor/
 *.test
 # Output of the go coverage tool
 *.out
+# chain config file
+config.yml
